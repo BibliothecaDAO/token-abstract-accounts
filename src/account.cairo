@@ -18,6 +18,10 @@ mod Account {
     impl DeployableImpl = AccountComponent::DeployableImpl<ContractState>;
     #[abi(embed_v0)]
     impl AccountTokenImpl = AccountComponent::AccountTokenImpl<ContractState>;
+    #[abi(embed_v0)]
+    impl AccountCallImpl = AccountComponent::AccountCallImpl<ContractState>;
+
+    
     impl AccountInternalImpl = AccountComponent::InternalImpl<ContractState>;
 
     // SRC5

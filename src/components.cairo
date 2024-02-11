@@ -5,6 +5,7 @@
 ///
 /// The Account component enables contracts to behave as accounts.
 
+use starknet::account::Call;
 
 #[starknet::interface]
 trait IAccountToken<TState> {
@@ -12,6 +13,14 @@ trait IAccountToken<TState> {
     fn get_token_address(self: @TState) -> starknet::ContractAddress;
     fn get_token_owner(self: @TState) -> starknet::ContractAddress;
 }
+
+
+
+#[starknet::interface]
+trait IAccountCall<TState> {
+    fn call(self: @TState, calls: Array<Call>) -> Array<Span<felt252>>;
+}
+
 
 #[starknet::component]
 mod AccountComponent {
@@ -191,6 +200,23 @@ mod AccountComponent {
 
 
 
+    #[embeddable_as(AccountCallImpl)]
+    impl AccountCall<
+        TContractState,
+        +HasComponent<TContractState>,
+        +SRC5Component::HasComponent<TContractState>,
+        +Drop<TContractState>
+    > of super::IAccountCall<ComponentState<TContractState>> {
+        /// Returns the current token id associated with the account
+        fn call(self: @ComponentState<TContractState>, mut calls: Array<Call>) -> Array<Span<felt252>> {
+            self.assert_only_token_owner();
+            OZAccountComponent::_execute_calls(calls)
+        }
+    }
+
+
+
+
 
     #[generate_trait]
     impl InternalImpl<
@@ -228,6 +254,13 @@ mod AccountComponent {
         fn account_token_owner(self: @ComponentState<TContractState>) -> ContractAddress {
             return IERC721Dispatcher {contract_address: self.Account_token_address.read()}
             .owner_of(self.Account_token_id.read());
+        }
+
+        fn assert_only_token_owner(self: @ComponentState<TContractState>) {
+            let token_owner = self.account_token_owner();
+            let caller = get_caller_address();
+            assert(caller != Zeroable::zero(), Errors::INVALID_CALLER);
+            assert(caller == token_owner, Errors::INVALID_CALLER);
         }
 
 
